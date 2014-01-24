@@ -12,7 +12,6 @@ exports.walk = function(origins, f) {
   }
   visitScope('^', state.cx.topScope, state);
 
-  // TODO(sqs): walk top scopes of all files
   state.cx.parent.files.forEach(function(file) {
     var path = '@' + file.name.replace(/\./g, '`');
     visitScope(path, file.scope, state);
