@@ -8,13 +8,13 @@ exports.walk = function(origins, f) {
   runPass(state.passes.preCondenseReach, state);
 
   for (var root in state.roots) {
-    visitScope(root, state.roots[root], state);
+    visitScope(root, state.roots[root], true, state);
   }
-  visitScope('^', state.cx.topScope, state);
+  visitScope('^', state.cx.topScope, true, state);
 
   state.cx.parent.files.forEach(function(file) {
     var path = '@' + file.name.replace(/\./g, '`');
-    visitScope(path, file.scope, state);
+    visitScope(path, file.scope, file.scope == state.cx.topScope, state);
     walkScopeNode(path, file.ast, state);
   });
 }
@@ -45,10 +45,10 @@ State.prototype.seenScope = function(scope) {
   return false;
 };
 
-function visitScope(path, scope, state) {
+function visitScope(path, scope, exported, state) {
   if (state.seenScope(scope)) return;
   for (var name in scope.props) {
-    visitAVal(path + '.' + name, scope.props[name], state);
+    visitAVal(path + '.' + name, scope.props[name], exported, state);
   }
 
   if (scope.originNode) {
@@ -56,13 +56,14 @@ function visitScope(path, scope, state) {
   }
 }
 
-function visitAVal(path, aval, state) {
+function visitAVal(path, aval, exported, state) {
   if (state.seenAVal(aval)) return;
   if (state.isTarget(aval.origin)) state.f(path, aval);
 
   var type = aval.getType(false);
   if (type && type.props) for (var name in type.props) {
-    visitAVal(path + '.' + name, type.props[name], state);
+    var propAVal = type.props[name];
+    if (!aval.origin || propAVal.origin == aval.origin || exported) visitAVal(path + '.' + name, propAVal, exported, state);
   }
 }
 
@@ -74,7 +75,7 @@ function walkScopeNode(path, node, state) {
       else name = ('@' + node.start);
       var path = st.path + '.' + name + '.@local';
       if (node.body.scope) {
-        visitScope(path, node.body.scope, state);
+        visitScope(path, node.body.scope, false, state);
       }
       c(node.body, {path: path});
     }
