@@ -1,0 +1,23 @@
+{
+  "name": "tern-scope-walk",
+  "description": "visits JavaScript scopes created by tern's inference engine",
+  "author": "Quinn Slack <sqs@sourcegraph.com>",
+  "version": "0.0.1",
+  "main": "scope-walk",
+  "readmeFilename": "README.md",
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/sourcegraph/tern-scope-walk.git"
+  },
+  "scripts": {
+    "test": "mocha"
+  },
+  "dependencies": {
+    "tern": "git://github.com/sqs/tern.git#sourcegraph",
+    "acorn": "~0.4.2"
+  },
+  "devDependencies": {
+    "mocha": "1.10.0",
+    "should": "~2.1.1"
+  }
+}

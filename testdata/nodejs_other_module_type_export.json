@@ -1,0 +1,6 @@
+[
+  "!node.testdata/nodejs_export_function_a`js",
+  "!node.testdata/nodejs_export_function_a`js.a",
+  "!node.testdata/nodejs_other_module_type_export`js",
+  "!node.testdata/nodejs_other_module_type_export`js.b"
+]

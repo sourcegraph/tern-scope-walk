@@ -1,0 +1,6 @@
+[
+  "!node.testdata/nodejs`js",
+  "!node.testdata/nodejs`js.a",
+  "!node.testdata/nodejs`js.b",
+  "!node.testdata/nodejs`js.b.c"
+]

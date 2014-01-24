@@ -1,0 +1,97 @@
+var infer = require('tern/lib/infer');
+var ast_walk = require('acorn/util/walk');
+
+exports.walk = function(origins, f) {
+  if (typeof origins == 'string') origins = [origins];
+  var state = new State(origins, f);
+
+  runPass(state.passes.preCondenseReach, state);
+
+  for (var root in state.roots) {
+    visitScope(root, state.roots[root], state);
+  }
+  visitScope('^', state.cx.topScope, state);
+
+  // TODO(sqs): walk top scopes of all files
+  state.cx.parent.files.forEach(function(file) {
+    var path = '@' + file.name.replace(/\./g, '`');
+    visitScope(path, file.scope, state);
+    walkScopeNode(path, file.ast, state);
+  });
+}
+
+function State(origins, f) {
+  this.origins = origins;
+  this.cx = infer.cx();
+  this.passes = this.cx.parent && this.cx.parent.passes || {};
+  this.roots = Object.create(null);
+  this.seenAVals = [];
+  this.seenScopes = [];
+  this.f = f;
+}
+
+State.prototype.isTarget = function(origin) {
+  return this.origins.indexOf(origin) > -1;
+};
+
+State.prototype.seenAVal = function(aval) {
+  if (this.seenAVals.indexOf(aval) > -1) return true;
+  this.seenAVals.push(aval);
+  return false;
+};
+
+State.prototype.seenScope = function(scope) {
+  if (this.seenScopes.indexOf(scope) > -1) return true;
+  this.seenScopes.push(scope);
+  return false;
+};
+
+function visitScope(path, scope, state) {
+  if (state.seenScope(scope)) return;
+  for (var name in scope.props) {
+    visitAVal(path + '.' + name, scope.props[name], state);
+  }
+
+  if (scope.originNode) {
+    walkScopeNode(path, scope.originNode, state);
+  }
+}
+
+function visitAVal(path, aval, state) {
+  if (state.seenAVal(aval)) return;
+  if (state.isTarget(aval.origin)) state.f(path);
+
+  var type = aval.getType(false);
+  if (type && type.props) for (var name in type.props) {
+    visitAVal(path + '.' + name, type.props[name], state);
+  }
+}
+
+function walkScopeNode(path, node, state) {
+  var w = ast_walk.make({
+    Function: function (node, st, c) {
+      var name;
+      if (node.id && node.id.name != '✖') name = node.id.name;
+      else name = ('@' + node.start);
+      var path = st.path + '.' + name + '.@local';
+      if (node.body.scope) {
+        visitScope(path, node.body.scope, state);
+      }
+      c(node.body, {path: path});
+    }
+  });
+  ast_walk.recursive(node, {path: path}, null, w);
+}
+
+function runPass(functions) {
+  if (functions) for (var i = 0; i < functions.length; ++i)
+    functions[i].apply(null, Array.prototype.slice.call(arguments, 1));
+}
+
+exports.collect = function(origins) {
+  var paths = [];
+  exports.walk(origins, function(path) {
+    paths.push(path);
+  });
+  return paths;
+}

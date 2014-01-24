@@ -1,0 +1,4 @@
+[
+  "!node.testdata/nodejs_require_mod0`js",
+  "@testdata/nodejs_require_mod0`js.mod0"
+]
