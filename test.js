@@ -19,6 +19,7 @@ describe('scope-walk', function() {
     {name: 'requirejs_objdef_file', args: ['--plugin', 'requirejs'], files: ['requirejs_objdef_def', 'requirejs_objdef_other']},
     {name: 'nodejs', args: ['--plugin', 'node']},
     {name: 'nodejs_require', args: ['--plugin', 'node']},
+    {name: 'nodejs_exports', args: ['--plugin', 'node']},
     {name: 'nodejs_module_export_func', args: ['--plugin', 'node']},
     {name: 'anonymous'},
 
