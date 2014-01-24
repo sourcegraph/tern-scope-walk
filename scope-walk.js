@@ -59,7 +59,7 @@ function visitScope(path, scope, state) {
 
 function visitAVal(path, aval, state) {
   if (state.seenAVal(aval)) return;
-  if (state.isTarget(aval.origin)) state.f(path);
+  if (state.isTarget(aval.origin)) state.f(path, aval);
 
   var type = aval.getType(false);
   if (type && type.props) for (var name in type.props) {
@@ -89,8 +89,16 @@ function runPass(functions) {
 }
 
 exports.collect = function(origins) {
+  var avals = [];
+  exports.walk(origins, function(path, aval) {
+    avals[path] = aval;
+  });
+  return avals;
+}
+
+exports.collectPaths = function(origins) {
   var paths = [];
-  exports.walk(origins, function(path) {
+  exports.walk(origins, function(path, aval) {
     paths.push(path);
   });
   return paths;
