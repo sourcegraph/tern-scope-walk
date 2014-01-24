@@ -1,32 +1,38 @@
 var infer = require('tern/lib/infer');
 var ast_walk = require('acorn/util/walk');
 
-exports.walk = function(origins, f) {
+exports.walk = function(origins) {
   if (typeof origins == 'string') origins = [origins];
-  var state = new State(origins, f);
+  var state = new State(origins);
 
   runPass(state.passes.preCondenseReach, state);
 
   for (var root in state.roots) {
     visitScope(root, state.roots[root], true, state);
   }
+  state.currentFile = null;
   visitScope('^', state.cx.topScope, true, state);
 
   state.cx.parent.files.forEach(function(file) {
     var path = '@' + file.name.replace(/\./g, '`');
+    state.currentFile = file.name;
     visitScope(path, file.scope, file.scope == state.cx.topScope, state);
     walkScopeNode(path, file.ast, state);
+    state.currentFile = null;
   });
+
+  return state.output;
 }
 
-function State(origins, f) {
+function State(origins) {
   this.origins = origins;
   this.cx = infer.cx();
   this.passes = this.cx.parent && this.cx.parent.passes || {};
   this.roots = Object.create(null);
   this.seenAVals = [];
   this.seenScopes = [];
-  this.f = f;
+  this.output = Object.create(null);
+  this.currentFile = null;
 }
 
 State.prototype.isTarget = function(origin) {
@@ -46,6 +52,7 @@ State.prototype.seenScope = function(scope) {
 };
 
 function visitScope(path, scope, exported, state) {
+  state.currentFile = scope.origin;
   if (state.seenScope(scope)) return;
   for (var name in scope.props) {
     visitAVal(path + '.' + name, scope.props[name], exported, state);
@@ -57,13 +64,24 @@ function visitScope(path, scope, exported, state) {
 }
 
 function visitAVal(path, aval, exported, state) {
-  if (state.seenAVal(aval)) return;
-  if (state.isTarget(aval.origin)) state.f(path, aval);
+  var oldPath = aval._path, oldVisitedInFile = aval._visitedInFile, oldExported = aval._exported;
+  // var betterFileMatch = aval.originNode && (oldVisitedInFile != astNodeFilename(aval.originNode) && state.currentFile == astNodeFilename(aval.originNode));
+  var better = !state.seenAVal(aval) || (!oldExported && exported) || (!oldPath || path.length < oldPath.length);
 
-  var type = aval.getType(false);
-  if (type && type.props) for (var name in type.props) {
-    var propAVal = type.props[name];
-    if (!aval.origin || propAVal.origin == aval.origin || exported) visitAVal(path + '.' + name, propAVal, exported, state);
+  if (better) {
+    aval._path = path;
+    aval._visitedInFile = state.currentFile;
+    aval._exported = exported;
+    if (state.isTarget(aval.origin)) {
+      state.output[path] = aval;
+      if (oldPath) delete state.output[oldPath];
+    }
+
+    var type = aval.getType(false);
+    if (type && type.props) for (var name in type.props) {
+      var propAVal = type.props[name];
+      visitAVal(path + '.' + name, propAVal, exported, state);
+    }
   }
 }
 
@@ -88,18 +106,22 @@ function runPass(functions) {
     functions[i].apply(null, Array.prototype.slice.call(arguments, 1));
 }
 
+
+function astNodeFilename(node) {
+  // Sometimes a node doesn't have a sourceFile property but one of its
+  // child nodes does. In that case, get sourceFile from the child node.
+  // TODO(sqs): why does this occur?
+  if (!node.sourceFile) {
+    var childNode = node.property || node.argument || node.left;
+    node.sourceFile = childNode.sourceFile;
+  }
+  return node.sourceFile.name;
+}
+
 exports.collect = function(origins) {
-  var avals = [];
-  exports.walk(origins, function(path, aval) {
-    avals[path] = aval;
-  });
-  return avals;
+  return exports.walk(origins);
 }
 
 exports.collectPaths = function(origins) {
-  var paths = [];
-  exports.walk(origins, function(path, aval) {
-    paths.push(path);
-  });
-  return paths;
+  return Object.keys(exports.walk(origins));
 }
