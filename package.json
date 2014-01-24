@@ -2,7 +2,7 @@
   "name": "tern-scope-walk",
   "description": "visits JavaScript scopes created by tern's inference engine",
   "author": "Quinn Slack <sqs@sourcegraph.com>",
-  "version": "0.0.5",
+  "version": "0.0.6",
   "main": "scope-walk",
   "readmeFilename": "README.md",
   "repository": {
