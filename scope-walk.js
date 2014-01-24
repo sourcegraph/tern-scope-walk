@@ -55,8 +55,11 @@ function visitScope(path, scope, exported, state) {
   state.currentFile = scope.origin;
   if (state.seenScope(scope)) return;
   for (var name in scope.props) {
-    visitAVal(path + '.' + name, scope.props[name], exported, state);
+    var av = scope.props[name];
+    if (!scope.origin) state.currentFile = av.origin;
+    visitAVal(path + '.' + name, av, exported, state);
   }
+  state.currentFile = null;
 
   if (scope.originNode) {
     walkScopeNode(path, scope.originNode, state);
@@ -65,8 +68,13 @@ function visitScope(path, scope, exported, state) {
 
 function visitAVal(path, aval, exported, state) {
   var oldPath = aval._path, oldVisitedInFile = aval._visitedInFile, oldExported = aval._exported;
-  // var betterFileMatch = aval.originNode && (oldVisitedInFile != astNodeFilename(aval.originNode) && state.currentFile == astNodeFilename(aval.originNode));
-  var better = !state.seenAVal(aval) || (!oldExported && exported) || (!oldPath || path.length < oldPath.length);
+
+  var betterFileMatch = aval.originNode && (oldVisitedInFile != astNodeFilename(aval.originNode) && state.currentFile == astNodeFilename(aval.originNode));
+  var worseFileMatch = aval.originNode && (oldVisitedInFile == astNodeFilename(aval.originNode) && state.currentFile != astNodeFilename(aval.originNode));
+//  if (path[0] != '^') console.error('###', path, 'oldVisitedInFile='+aval._visitedInFile, 'astNodeFilename='+aval.originNode ? astNodeFilename(aval.originNode) : '(no originNode)');
+  if (path[0] != '^' && path.indexOf('extend') > -1) console.error('###', path, 'originNode?=' + !!aval.originNode, 'oldVisitedInFile='+aval._visitedInFile, 'betterFile='+betterFileMatch,'worseFile='+worseFileMatch, 'currentFile='+state.currentFile, 'astNodeFilename='+astNodeFilename(aval.originNode));
+  var betterOtherHeuristics = (!oldExported && exported) || !oldPath || path.length < oldPath.length;
+  var better = !state.seenAVal(aval) || betterFileMatch || (!worseFileMatch && betterOtherHeuristics);
 
   if (better) {
     aval._path = path;
