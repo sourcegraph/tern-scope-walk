@@ -71,8 +71,9 @@ function visitAVal(path, aval, exported, state) {
 
   var betterFileMatch = aval.originNode && (oldVisitedInFile != astNodeFilename(aval.originNode) && state.currentFile == astNodeFilename(aval.originNode));
   var worseFileMatch = aval.originNode && (oldVisitedInFile == astNodeFilename(aval.originNode) && state.currentFile != astNodeFilename(aval.originNode));
-  var betterOtherHeuristics = (!oldExported && exported) || !oldPath || path.length < oldPath.length;
-  var better = !state.seenAVal(aval) || betterFileMatch || (!worseFileMatch && betterOtherHeuristics);
+  var betterExported = !oldExported && exported, worseExported = oldExported && !exported;
+  var shorter = !oldPath || path.length < oldPath.length;
+  var better = !state.seenAVal(aval) || betterFileMatch || (!worseFileMatch && betterExported) || (!worseFileMatch && !worseExported && shorter);
 
   if (better) {
     aval._path = path;

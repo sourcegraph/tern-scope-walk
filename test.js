@@ -12,6 +12,8 @@ describe('scope-walk', function() {
     {name: 'obj'},
     {name: 'obj_share'},
 
+    {name: 'prefer_exported', args: ['--plugin', 'node']},
+
     {name: 'recv'},
     {name: 'builtin_origin'},
     {name: 'target_primitive'},
