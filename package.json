@@ -14,7 +14,7 @@
   },
   "dependencies": {
     "tern": "git://github.com/sqs/tern.git#sourcegraph",
-    "acorn": "~0.4.2"
+    "acorn": "~0.5.0"
   },
   "devDependencies": {
     "mocha": "1.10.0",
